@@ -1050,7 +1050,10 @@ class CompImageHDU(BinTableHDU):
             if self._image_header["NAXIS1"] < 4 or self._image_header["NAXIS2"] < 4:
                 raise ValueError("Hcompress minimum image dimension is 4 pixels")
             elif tile_size:
-                if tile_size[0] < 4 or tile_size[1] < 4:
+                flattened_tile_size = [size for size in tile_size if size > 1]
+                if len(flattened_tile_size) != 2:
+                    raise ValueError("Hcompress tile size should contain exactly two non-1 values")
+                if flattened_tile_size[0] < 4 or flattened_tile_size[1] < 4:
                     # user specified tile size is too small
                     raise ValueError("Hcompress minimum tile dimension is 4 pixels")
                 major_dims = len([ts for ts in tile_size if ts > 1])
