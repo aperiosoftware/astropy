@@ -11,7 +11,9 @@
 
 // Some of the cfitsio compression files use ffpmsg
 // so we provide a dummy function to replace this.
-void ffpmsg(const char *err_message) {}
+void ffpmsg(const char *err_message) {
+    PyErr_SetString(PyExc_ValueError, err_message);
+}
 
 // Compatibility code because we pick up fitsio2.h from cextern. Can
 // remove once we remove cextern
@@ -254,6 +256,19 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
     return NULL;
   }
 
+  if (bytepix != 4 && bytepix != 8) {
+    PyErr_SetString(PyExc_ValueError,
+                    "HCompress can only work with 4 or 8 byte integers.");
+    return (PyObject *)NULL;
+
+  }
+
+  if ((nx < 4) || (ny < 4)) {
+    PyErr_SetString(PyExc_ValueError,
+                    "HCOMPRESS requires tiles of at least 4x4 pixels.");
+    return (PyObject *)NULL;
+  }
+
   if (count != nx * ny * bytepix) {
     PyErr_SetString(PyExc_ValueError,
                     "The tile dimensions and dtype do not match the number of bytes provided.");
@@ -263,17 +278,29 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
   // maxelem adapted from cfitsio's imcomp_calc_max_elem function
   maxelem = count / 4 * 2.2 + 26;
 
-  compressed_values = (char *)malloc(maxelem);
+  // Apparently with the above calculation we can still end up allocating too
+  // small of a buffer, this could never happen by more than 32 bytes
+  // riiiiiight.
+  // TODO: Do a small buffer calculation to tune this number like we did for PLIO
+  compressed_values = (char *)malloc(maxelem + 32);
 
   if (bytepix == 4) {
     decompressed_values_int = (int *)str;
-    fits_hcompress(decompressed_values_int, ny, nx, scale, compressed_values, &count, &status);
+    fits_hcompress(decompressed_values_int, ny, nx, scale, compressed_values, &maxelem, &status);
   } else {
     decompressed_values_longlong = (long long *)str;
-    fits_hcompress64(decompressed_values_longlong, ny, nx, scale, compressed_values, &count, &status);
+    fits_hcompress64(decompressed_values_longlong, ny, nx, scale, compressed_values, &maxelem, &status);
   }
 
-  result = Py_BuildValue("y#", compressed_values, count);
+  if (status != 0) {
+    // There has been an error, and the call inside cfitsio should have called
+    // the ffpmsg function which sets the Python exception, so we just return
+    // here to raise an error.
+    free(compressed_values);
+    return (PyObject *)NULL;
+  }
+
+  result = Py_BuildValue("y#", compressed_values, maxelem);
   free(compressed_values);
   return result;
 }
@@ -298,7 +325,12 @@ static PyObject *decompress_hcompress_1_c(PyObject *self, PyObject *args) {
 
   compressed_values = (unsigned char *)str;
 
-  // TODO: raise an error if bytepix is not 4 or 8
+  if (bytepix != 4 && bytepix != 8) {
+    PyErr_SetString(PyExc_ValueError,
+                    "HCompress can only work with 4 or 8 byte integers.");
+    return (PyObject *)NULL;
+
+  }
 
   dbytes = malloc(nx * ny * bytepix);
 
@@ -308,6 +340,14 @@ static PyObject *decompress_hcompress_1_c(PyObject *self, PyObject *args) {
   } else {
     decompressed_values_longlong = (long long *)dbytes;
     fits_hdecompress64(compressed_values, smooth, decompressed_values_longlong, &ny, &nx, &scale, &status);
+  }
+
+  if (status != 0) {
+    // There has been an error, and the call inside cfitsio should have called
+    // the ffpmsg function which sets the Python exception, so we just return
+    // here to raise an error.
+    free(dbytes);
+    return (PyObject *)NULL;
   }
 
   result = Py_BuildValue("y#", dbytes, nx * ny * bytepix);
