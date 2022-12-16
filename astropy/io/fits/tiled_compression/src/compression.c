@@ -102,7 +102,11 @@ static PyObject *compress_plio_1_c(PyObject *self, PyObject *args) {
 
   // For PLIO imcomp_calc_max_elem in cfitsio does this to calculate max memory:
   maxelem = tilesize * sizeof(int);
-  compressed_values = (short *)malloc(maxelem);
+  // However, when compressing small numbers of random integers you can end up
+  // using more memory for the compressed bytes.  In the worst case senario we
+  // tested, compressing a single 4 byte integer will compress to 16 bytes.  We
+  // add 32 bytes here to give a small margin of error.
+  compressed_values = (short *)malloc(maxelem + 32);
 
   decompressed_values = (int *)str;
 
