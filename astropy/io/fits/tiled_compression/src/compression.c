@@ -119,6 +119,13 @@ static PyObject *compress_plio_1_c(PyObject *self, PyObject *args) {
 
   compressed_length = pl_p2li(decompressed_values, 1, compressed_values, tilesize);
 
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
+    return (PyObject *)NULL;
+  }
+
   buf = (char *)compressed_values;
 
   result = Py_BuildValue("y#", buf, compressed_length * 2);
@@ -147,6 +154,13 @@ static PyObject *decompress_plio_1_c(PyObject *self, PyObject *args) {
   decompressed_values = (int *)malloc(sizeof(int) * tilesize);
 
   pl_l2pi(compressed_values, 1, decompressed_values, tilesize);
+
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
+    return (PyObject *)NULL;
+  }
 
   buf = (char *)decompressed_values;
 
@@ -192,6 +206,13 @@ static PyObject *compress_rice_1_c(PyObject *self, PyObject *args) {
     compressed_length = fits_rcomp(decompressed_values_int, (int)count / 4, compressed_values, count * 16, blocksize);
   }
 
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
+    return (PyObject *)NULL;
+  }
+
   result = Py_BuildValue("y#", compressed_values, compressed_length);
   free(compressed_values);
   return result;
@@ -229,6 +250,13 @@ static PyObject *decompress_rice_1_c(PyObject *self, PyObject *args) {
     decompressed_values_int = (unsigned int *)malloc(tilesize * 4);
     fits_rdecomp(compressed_values, (int)count, decompressed_values_int, tilesize, blocksize);
     dbytes = (char *)decompressed_values_int;
+  }
+
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
+    return (PyObject *)NULL;
   }
 
   result = Py_BuildValue("y#", dbytes, tilesize * bytepix);
@@ -292,11 +320,10 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
     fits_hcompress64(decompressed_values_longlong, ny, nx, scale, compressed_values, &maxelem, &status);
   }
 
-  if (status != 0) {
-    // There has been an error, and the call inside cfitsio should have called
-    // the ffpmsg function which sets the Python exception, so we just return
-    // here to raise an error.
-    free(compressed_values);
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
     return (PyObject *)NULL;
   }
 
@@ -342,11 +369,10 @@ static PyObject *decompress_hcompress_1_c(PyObject *self, PyObject *args) {
     fits_hdecompress64(compressed_values, smooth, decompressed_values_longlong, &ny, &nx, &scale, &status);
   }
 
-  if (status != 0) {
-    // There has been an error, and the call inside cfitsio should have called
-    // the ffpmsg function which sets the Python exception, so we just return
-    // here to raise an error.
-    free(dbytes);
+  if (PyErr_Occurred() != NULL) {
+    // If an error condition inside the cfitsio function, the call inside
+    // cfitsio should have called the ffpmsg function which sets the Python
+    // exception, so we just return here to raise an error.
     return (PyObject *)NULL;
   }
 
