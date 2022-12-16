@@ -77,7 +77,7 @@ def _header_to_settings(header, actual_tile_shape):
     elif header["ZCMPTYPE"] in ("RICE_1", "RICE_ONE"):
         settings["blocksize"] = _get_compression_setting(header, "BLOCKSIZE", 32)
         settings["bytepix"] = _get_compression_setting(header, "BYTEPIX", 4)
-        settings["tilesize"] = np.product(tile_shape)
+        settings["tilesize"] = np.product(actual_tile_shape)
     elif header["ZCMPTYPE"] == "HCOMPRESS_1":
         settings["bytepix"] = 4
         settings["scale"] = int(_get_compression_setting(header, "SCALE", 0))
