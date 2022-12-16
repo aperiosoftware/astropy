@@ -91,7 +91,6 @@ def test_roundtrip_high_D(
 
     filename = tmp_path / f"{compression_type}_{dtype}.fits"
 
-    # breakpoint()
     param = fitsio_param_to_astropy_param(compression_param)
     hdu = fits.CompImageHDU(
         data=original_data,

@@ -141,7 +141,8 @@ def astropy_compressed_file_path(
     hdu = fits.CompImageHDU(
         data=original_data,
         compression_type=compression_type,
-        tile_size=tile_dims,
+        # TODO: why does this require a list??
+        tile_size=list(tile_dims) if tile_dims is not None else tile_dims,
         **param,
     )
     hdu.writeto(filename)
