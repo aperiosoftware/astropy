@@ -416,6 +416,11 @@ def compress_hdu(hdu):
 
         data = hdu.data[slices]
 
+        # We have to calculate the tilesize from the shape of the tile not the
+        # header, so that it's correct for edge tiles etc.
+        if hdu._header["ZCMPTYPE"] == "PLIO_1":
+            settings["tilesize"] = np.product(data.shape)
+
         quantize = "ZSCALE" in hdu.columns.dtype.names
 
         if data.dtype.kind == "f" and quantize:
