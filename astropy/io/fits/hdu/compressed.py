@@ -1047,13 +1047,26 @@ class CompImageHDU(BinTableHDU):
         # Set default tile dimensions for HCOMPRESS_1
 
         if compression_type == "HCOMPRESS_1":
-            if self._image_header["NAXIS1"] < 4 or self._image_header["NAXIS2"] < 4:
+
+            # HCOMPRESS_1 allows >2D tiles provided only two dimensions have
+            # non-1 values. We store the indices of those dimensions to use
+            # below.
+            keep_dims = []
+            for i in range(len(tile_size)):
+                if tile_size[i] > 1:
+                    keep_dims.append(i)
+
+            if (
+                self._image_header[f"NAXIS{keep_dims[0] + 1}"] < 4
+                or self._image_header[f"NAXIS{keep_dims[1] + 1}"] < 4
+            ):
                 raise ValueError("Hcompress minimum image dimension is 4 pixels")
             elif tile_size:
-                flattened_tile_size = [size for size in tile_size if size > 1]
-                if len(flattened_tile_size) != 2:
-                    raise ValueError("Hcompress tile size should contain exactly two non-1 values")
-                if flattened_tile_size[0] < 4 or flattened_tile_size[1] < 4:
+                if len(keep_dims) != 2:
+                    raise ValueError(
+                        "Hcompress tile size should contain exactly two non-1 values"
+                    )
+                if tile_size[keep_dims[0]] < 4 or tile_size[keep_dims[1]] < 4:
                     # user specified tile size is too small
                     raise ValueError("Hcompress minimum tile dimension is 4 pixels")
                 major_dims = len([ts for ts in tile_size if ts > 1])
@@ -1063,6 +1076,10 @@ class CompImageHDU(BinTableHDU):
                         "All but two of the tile_size dimensions must be set "
                         "to 1."
                     )
+
+            # TODO: is '0' a magic value that means all pixels along a certain
+            # dimension? If so we should perhaps check not the first two but
+            # the two dimensions that are not 1.
 
             if tile_size and (tile_size[0] == 0 and tile_size[1] == 0):
                 # compress the whole image as a single tile
@@ -1107,24 +1124,33 @@ class CompImageHDU(BinTableHDU):
             # check if requested tile size causes the last tile to have
             # less than 4 pixels
 
-            remain = self._image_header["NAXIS1"] % tile_size[0]  # 1st dimen
+            remain = (
+                self._image_header[f"NAXIS{keep_dims[0] + 1}"] % tile_size[keep_dims[0]]
+            )  # 1st dimen
 
             if remain > 0 and remain < 4:
-                tile_size[0] += 1  # try increasing tile size by 1
-
-                remain = self._image_header["NAXIS1"] % tile_size[0]
+                tile_size[keep_dims[0]] += 1  # try increasing tile size by 1
+                remain = (
+                    self._image_header[f"NAXIS{keep_dims[0] + 1}"]
+                    % tile_size[keep_dims[0]]
+                )
 
                 if remain > 0 and remain < 4:
                     raise ValueError(
                         "Last tile along 1st dimension has less than 4 pixels"
                     )
 
-            remain = self._image_header["NAXIS2"] % tile_size[1]  # 2nd dimen
+            remain = (
+                self._image_header[f"NAXIS{keep_dims[1] + 1}"] % tile_size[keep_dims[1]]
+            )  # 2nd dimen
 
             if remain > 0 and remain < 4:
-                tile_size[1] += 1  # try increasing tile size by 1
+                tile_size[keep_dims[1]] += 1  # try increasing tile size by 1
 
-                remain = self._image_header["NAXIS2"] % tile_size[1]
+                remain = (
+                    self._image_header[f"NAXIS{keep_dims[1] + 1}"]
+                    % tile_size[keep_dims[1]]
+                )
 
                 if remain > 0 and remain < 4:
                     raise ValueError(
