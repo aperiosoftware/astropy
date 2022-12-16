@@ -310,14 +310,15 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
   // small of a buffer, this could never happen by more than 32 bytes
   // riiiiiight.
   // TODO: Do a small buffer calculation to tune this number like we did for PLIO
-  compressed_values = (char *)malloc(maxelem + 32);
+  int buffer_size = maxelem + 32;
+  compressed_values = (char *)malloc(buffer_size);
 
   if (bytepix == 4) {
     decompressed_values_int = (int *)str;
-    fits_hcompress(decompressed_values_int, ny, nx, scale, compressed_values, &maxelem, &status);
+    fits_hcompress(decompressed_values_int, ny, nx, scale, compressed_values, &buffer_size, &status);
   } else {
     decompressed_values_longlong = (long long *)str;
-    fits_hcompress64(decompressed_values_longlong, ny, nx, scale, compressed_values, &maxelem, &status);
+    fits_hcompress64(decompressed_values_longlong, ny, nx, scale, compressed_values, &buffer_size, &status);
   }
 
   if (PyErr_Occurred() != NULL) {
