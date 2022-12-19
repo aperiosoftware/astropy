@@ -61,10 +61,27 @@ else:
 def array_shapes_tile_dims(request, compression_type):
     shape, tile_dim = request.param
     # H_COMPRESS needs >=2D data and always 2D tiles
-    if compression_type == "HCOMPRESS_1" and (
-        len(shape) < 2 or np.count_nonzero(np.array(tile_dim) != 1) != 2
-    ):
-        pytest.xfail("HCOMPRESS requires 2D tiles.")
+    if compression_type == "HCOMPRESS_1":
+        if (
+            # We don't have at least a 2D image
+            len(shape) < 2
+            or
+            # We don't have 2D tiles
+            np.count_nonzero(np.array(tile_dim) != 1) != 2
+            or
+            # TODO: The following restrictions can be lifted with some extra work.
+            # The tile is not the first two dimensions of the data
+            tile_dim[0] == 1
+            or tile_dim[1] == 1
+            or
+            # The tile dimensions not an integer multiple of the array dims
+            np.count_nonzero(np.array(shape[:2]) % tile_dim[:2]) != 0
+        ):
+            pytest.xfail(
+                "HCOMPRESS requires 2D tiles, from the first two"
+                "dimensions, and an integer number of tiles along the first two"
+                "axes."
+            )
     return shape, tile_dim
 
 
