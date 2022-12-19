@@ -38,17 +38,22 @@ else:
         # Test the situation where the tile shape is passed larger than the
         # array shape
         [
-            ((4, 4, 5),),
+            (
+                (4, 4, 5),
+                (5, 5, 5),
+            ),
             (
                 (5, 5, 1),
                 None,
             ),
         ],
         # Test shapes which caused errors
-        [
-            ((3, 4, 5),),
-            ((1, 2, 3),),
-        ],
+        # This one we can't test here as it causes segfaults in cfitsio
+        # It is tested in test_roundtrip_high_D though.
+        # [
+        #     ((3, 4, 5),),
+        #     ((1, 2, 3),),
+        # ],
         # >3D Data are not currently supported by cfitsio
     ),
     ids=lambda x: f"shape: {x[0]} tile_dims: {x[1]}",
@@ -141,7 +146,8 @@ def astropy_compressed_file_path(
     hdu = fits.CompImageHDU(
         data=original_data,
         compression_type=compression_type,
-        tile_size=tile_dims,
+        # TODO: why does this require a list??
+        tile_size=list(tile_dims) if tile_dims is not None else tile_dims,
         **param,
     )
     hdu.writeto(filename)
