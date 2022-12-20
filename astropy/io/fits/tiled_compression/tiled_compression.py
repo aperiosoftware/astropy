@@ -286,13 +286,15 @@ def decompress_hdu(hdu):
 
         cdata = row["COMPRESSED_DATA"]
 
-        if irow == 0 and hdu._header["ZCMPTYPE"] == "GZIP_2":
-            # Decompress with GZIP_1 just to find the total number of
-            # elements in the uncompressed data
-            tile_data = np.asarray(
-                decompress_tile(row["COMPRESSED_DATA"], algorithm="GZIP_1")
-            )
-            settings["itemsize"] = tile_data.size // int(np.product(actual_tile_shape))
+        if hdu._header["ZCMPTYPE"] == "GZIP_2":
+            if irow == 0:
+                # Decompress with GZIP_1 just to find the total number of
+                # elements in the uncompressed data
+                tile_data = np.asarray(
+                    decompress_tile(row["COMPRESSED_DATA"], algorithm="GZIP_1")
+                )
+                override_itemsize = tile_data.size // int(np.product(actual_tile_shape))
+            settings["itemsize"] = override_itemsize
 
         gzip_fallback = len(cdata) == 0
 
