@@ -18,7 +18,7 @@ int Fitsio_Pthread_Status = 0;
 #endif
 
 /* Define docstrings */
-static char module_docstring[] = "Core compression/decompression functions";
+static char module_docstring[] = "Core compression/decompression functions wrapped from cfitsio.";
 static char compress_plio_1_c_docstring[] = "Compress data using PLIO_1";
 static char decompress_plio_1_c_docstring[] = "Decompress data using PLIO_1";
 static char compress_rice_1_c_docstring[] = "Compress data using RICE_1";
@@ -64,7 +64,7 @@ static PyMethodDef module_methods[] = {
 static PyModuleDef compression = {
     PyModuleDef_HEAD_INIT,
     "_compression",
-    "Wrapper functions for compression and decompression functions in cfitsio.",
+    module_docstring,
     -1,
     module_methods,
 };
@@ -424,8 +424,10 @@ static PyObject *quantize_float_c(PyObject *self, PyObject *args) {
 
   quantized_bytes = (char *)quantized_data;
 
-  result = Py_BuildValue("y#iddii", quantized_bytes, nx * ny * sizeof(int), status,
-                                   bscale, bzero, iminval, imaxval);
+  Py_ssize_t output_length = nx * ny * sizeof(int);
+
+  result = Py_BuildValue("y#iddii", quantized_bytes, output_length, status,
+                         bscale, bzero, iminval, imaxval);
   free(quantized_bytes);
   return result;
 }
