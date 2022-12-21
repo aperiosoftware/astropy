@@ -338,7 +338,7 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
     return (PyObject *)NULL;
   }
 
-  result = Py_BuildValue("y#", compressed_values, maxelem);
+  result = Py_BuildValue("y#", compressed_values, buffer_size);
   free(compressed_values);
   return result;
 }
