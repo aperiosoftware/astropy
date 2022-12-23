@@ -22,7 +22,10 @@ ALGORITHMS = {
 DEFAULT_ZBLANK = -2147483648
 
 
-def decompress_tile(buf, *, algorithm: str, **kwargs):
+__all__ = ["compress_hdu", "decompress_hdu"]
+
+
+def _decompress_tile(buf, *, algorithm: str, **settings):
     """
     Decompress the buffer of a tile using the given compression algorithm.
 
@@ -32,13 +35,13 @@ def decompress_tile(buf, *, algorithm: str, **kwargs):
         The compressed buffer to be decompressed.
     algorithm
         A supported decompression algorithm.
-    kwargs
+    settings
         Any parameters for the given compression algorithm
     """
-    return ALGORITHMS[algorithm](**kwargs).decode(buf)
+    return ALGORITHMS[algorithm](**settings).decode(buf)
 
 
-def compress_tile(buf, *, algorithm: str, **kwargs):
+def _compress_tile(buf, *, algorithm: str, **settings):
     """
     Compress the buffer of a tile using the given compression algorithm.
 
@@ -48,10 +51,10 @@ def compress_tile(buf, *, algorithm: str, **kwargs):
         The decompressed buffer to be compressed.
     algorithm
         A supported compression algorithm.
-    kwargs
+    settings
         Any parameters for the given compression algorithm
     """
-    return ALGORITHMS[algorithm](**kwargs).encode(buf)
+    return ALGORITHMS[algorithm](**settings).encode(buf)
 
 
 def _tile_shape(header):
@@ -94,7 +97,7 @@ def _header_to_settings(header, actual_tile_shape):
     return settings
 
 
-def _buffer_to_array(
+def _finalize_array(
     tile_buffer, header, tile_shape=None, algorithm=None, lossless=False
 ):
     """
@@ -138,7 +141,7 @@ def _buffer_to_array(
         if algorithm in ("RICE_1", "RICE_ONE", "PLIO_1"):
             tile_buffer = tile_buffer[: np.product(tile_shape)]
 
-        if tile_buffer.format == "b":
+        if tile_buffer.data.format == "b":
             # NOTE: this feels like a Numpy bug - need to investigate
             tile_data = np.asarray(tile_buffer, dtype=np.uint8).reshape(tile_shape)
         else:
@@ -291,18 +294,22 @@ def decompress_hdu(hdu):
                 # Decompress with GZIP_1 just to find the total number of
                 # elements in the uncompressed data
                 tile_data = np.asarray(
-                    decompress_tile(row["COMPRESSED_DATA"], algorithm="GZIP_1")
+                    _decompress_tile(row["COMPRESSED_DATA"], algorithm="GZIP_1")
                 )
                 override_itemsize = tile_data.size // int(np.product(actual_tile_shape))
             settings["itemsize"] = override_itemsize
 
+        # When quantizing floating point data, sometimes the data will not
+        # quantize efficently.  In these cases the raw floating point data can
+        # be losslessly GZIP compressed and stored in the `GZIP_COMPRESSED_DATA`
+        # column.
         gzip_fallback = len(cdata) == 0
 
         if gzip_fallback:
-            tile_buffer = decompress_tile(
+            tile_buffer = _decompress_tile(
                 row["GZIP_COMPRESSED_DATA"], algorithm="GZIP_1"
             )
-            tile_data = _buffer_to_array(
+            tile_data = _finalize_array(
                 tile_buffer,
                 hdu._header,
                 tile_shape=actual_tile_shape,
@@ -310,10 +317,10 @@ def decompress_hdu(hdu):
                 lossless=True,
             )
         else:
-            tile_buffer = decompress_tile(
+            tile_buffer = _decompress_tile(
                 cdata, algorithm=hdu._header["ZCMPTYPE"], **settings
             )
-            tile_data = _buffer_to_array(
+            tile_data = _finalize_array(
                 tile_buffer,
                 hdu._header,
                 tile_shape=actual_tile_shape,
@@ -334,10 +341,10 @@ def decompress_hdu(hdu):
                 dither_method = DITHER_METHODS[hdu._header.get("ZQUANTIZ", "NO_DITHER")]
                 dither_seed = hdu._header.get("ZDITHER0", 0)
                 q = Quantize(
-                    (irow + dither_seed) if dither_method != -1 else 0,
-                    dither_method,
-                    None,
-                    hdu._header["ZBITPIX"],
+                    row=(irow + dither_seed) if dither_method != -1 else 0,
+                    dither_method=dither_method,
+                    quantize_level=None,
+                    bitpix=hdu._header["ZBITPIX"],
                 )
                 tile_data = np.asarray(
                     q.decode_quantized(tile_data, row["ZSCALE"], row["ZZERO"])
@@ -373,9 +380,9 @@ def compress_hdu(hdu):
     Returns
     -------
     nbytes : `int`
-        The number of bytes for the data once compressed.
-    cbytes : `numpy.ndarray`
-        The compressed bytes as a unit8 numpy array.
+        The number of bytes of the heap.
+    heap : `bytes`
+        The bytes of the FITS table heap.
     """
 
     if not isinstance(hdu.data, np.ndarray):
@@ -428,10 +435,10 @@ def compress_hdu(hdu):
             dither_method = DITHER_METHODS[hdu._header.get("ZQUANTIZ", "NO_DITHER")]
             dither_seed = hdu._header.get("ZDITHER0", 0)
             q = Quantize(
-                (irow + dither_seed) if dither_method != -1 else 0,
-                dither_method,
-                noisebit,
-                hdu._header["ZBITPIX"],
+                row=(irow + dither_seed) if dither_method != -1 else 0,
+                dither_method=dither_method,
+                quantize_level=noisebit,
+                bitpix=hdu._header["ZBITPIX"],
             )
             original_shape = data.shape
 
@@ -495,9 +502,9 @@ def compress_hdu(hdu):
                 data = data.astype(data.dtype.newbyteorder("="))
 
         if gzip_fallback[-1]:
-            cbytes = compress_tile(data, algorithm="GZIP_1")
+            cbytes = _compress_tile(data, algorithm="GZIP_1")
         else:
-            cbytes = compress_tile(data, algorithm=hdu._header["ZCMPTYPE"], **settings)
+            cbytes = _compress_tile(data, algorithm=hdu._header["ZCMPTYPE"], **settings)
         compressed_bytes.append(cbytes)
 
         istart[-1] += tile_shape[-1]
