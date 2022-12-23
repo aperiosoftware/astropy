@@ -7,8 +7,8 @@ import numpy as np
 
 from astropy.io.fits.hdu.base import BITPIX2DTYPE
 
-from ._codecs import PLIO1, Gzip1, Gzip2, HCompress1, Rice1
-from ._quantization import DITHER_METHODS, QuantizationFailedException, Quantize
+from .codecs import PLIO1, Gzip1, Gzip2, HCompress1, Rice1
+from .quantization import DITHER_METHODS, QuantizationFailedException, Quantize
 
 ALGORITHMS = {
     "GZIP_1": Gzip1,
