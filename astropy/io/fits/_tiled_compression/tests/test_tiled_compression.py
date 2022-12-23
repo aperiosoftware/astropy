@@ -68,8 +68,9 @@ def test_zblank_support(canonical_data_base_path, tmp_path):
 @pytest.mark.parametrize(
     ("shape", "tile_dim"),
     (
+        ([10, 10], [5, 5]),  # something for HCOMPRESS
         ([5, 5, 5], [5, 5, 5]),
-        ([5, 5, 5], [5, 5, 1]),  # something for HCOMPRESS
+        # ([5, 5, 5], [5, 5, 1]),  # something for HCOMPRESS
         ([10, 15, 20], [5, 5, 5]),
         ([10, 5, 12], [5, 5, 5]),
         # TODO: There's a stupid bit of code in CompImageHDU which stops this working.
@@ -81,7 +82,19 @@ def test_roundtrip_high_D(
     numpy_rng, compression_type, compression_param, tmp_path, dtype, shape, tile_dim
 ):
     if compression_type == "HCOMPRESS_1" and (
-        len(shape) < 2 or np.count_nonzero(np.array(tile_dim) != 1) != 2
+        # We don't have at least a 2D image
+        len(shape) < 2
+        or
+        # We don't have 2D tiles
+        np.count_nonzero(np.array(tile_dim) != 1) != 2
+        or
+        # TODO: The following restrictions can be lifted with some extra work.
+        # The tile is not the first two dimensions of the data
+        tile_dim[0] == 1
+        or tile_dim[1] == 1
+        or
+        # The tile dimensions not an integer multiple of the array dims
+        np.count_nonzero(np.array(shape[:2]) % tile_dim[:2]) != 0
     ):
         pytest.xfail("HCOMPRESS requires 2D tiles.")
     random = numpy_rng.uniform(high=255, size=shape)
@@ -101,6 +114,14 @@ def test_roundtrip_high_D(
     )
     hdu.writeto(filename)
 
+    atol = 0
+    if compression_param.get("qmethod", None) is not None:
+        # This is a horrific hack We are comparing quantized data to unquantized
+        # data here, so there can be pretty large differences.  What this test
+        # is really checking for is arrays which are *completely* different,
+        # which would indicate the compression has not worked.
+        atol = 17
+
     with fits.open(filename) as hdul:
         a = hdul[1].data
-    #     np.testing.assert_allclose(original_data, hdul[1].data, atol=1)
+        np.testing.assert_allclose(original_data, hdul[1].data, atol=atol)
