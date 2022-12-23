@@ -133,4 +133,4 @@ class Quantize:
         if status == 0:
             raise QuantizationFailedException()
         else:
-            return np.frombuffer(qbytes, dtype=np.int32).data, scale, zero
+            return np.frombuffer(qbytes, dtype=np.int32), scale, zero
