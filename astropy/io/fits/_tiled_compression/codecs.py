@@ -1,8 +1,5 @@
 """
-This file contains the FITS compression algorithms in numcodecs style Codecs.
-
-This module is currently private as these classes have not been tested
-externally to Astropy and their behaviour may have to change.
+This module contains the FITS compression algorithms in numcodecs style Codecs.
 """
 from gzip import compress as gzip_compress
 from gzip import decompress as gzip_decompress
@@ -63,7 +60,7 @@ class Gzip1(Codec):
         """
         cbytes = np.frombuffer(buf, dtype=np.uint8).tobytes()
         dbytes = gzip_decompress(cbytes)
-        return np.frombuffer(dbytes, dtype=np.uint8).data
+        return np.frombuffer(dbytes, dtype=np.uint8)
 
     def encode(self, buf):
         """
@@ -139,7 +136,7 @@ class Gzip2(Codec):
         # Start off by unshuffling buffer
         unshuffled_buffer = gzip_decompress(cbytes)
         array = np.frombuffer(unshuffled_buffer, dtype=np.uint8)
-        return array.reshape((self.itemsize, -1)).T.ravel().data
+        return array.reshape((self.itemsize, -1)).T.ravel()
 
     def encode(self, buf):
         """
@@ -214,7 +211,7 @@ class Rice1(Codec):
         dbytes = decompress_rice_1_c(
             cbytes, self.blocksize, self.bytepix, self.tilesize
         )
-        return np.frombuffer(dbytes, dtype=f"i{self.bytepix}").data
+        return np.frombuffer(dbytes, dtype=f"i{self.bytepix}")
 
     def encode(self, buf):
         """
@@ -267,7 +264,7 @@ class PLIO1(Codec):
         """
         cbytes = np.frombuffer(buf, dtype=np.uint8).tobytes()
         dbytes = decompress_plio_1_c(cbytes, self.tilesize)
-        return np.frombuffer(dbytes, dtype="i4").data
+        return np.frombuffer(dbytes, dtype="i4")
 
     def encode(self, buf):
         """
@@ -342,7 +339,7 @@ class HCompress1(Codec):
         dbytes = decompress_hcompress_1_c(
             cbytes, self.nx, self.ny, self.scale, self.smooth, self.bytepix
         )
-        return np.frombuffer(dbytes, dtype=f"i{self.bytepix}").data
+        return np.frombuffer(dbytes, dtype=f"i{self.bytepix}")
 
     def encode(self, buf):
         """
