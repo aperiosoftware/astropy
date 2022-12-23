@@ -26,7 +26,9 @@ class Quantize:
     Quantization of floating-point data following the FITS standard.
     """
 
-    def __init__(self, row: int, dither_method: int, quantize_level: int, bitpix: int):
+    def __init__(
+        self, *, row: int, dither_method: int, quantize_level: int, bitpix: int
+    ):
         super().__init__()
         self.row = row
         # TODO: pass dither method as a string instead of int?

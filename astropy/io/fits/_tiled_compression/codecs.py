@@ -114,7 +114,7 @@ class Gzip2(Codec):
 
     codec_id = "FITS_GZIP2"
 
-    def __init__(self, itemsize: int):
+    def __init__(self, *, itemsize: int):
         super().__init__()
         self.itemsize = itemsize
 
@@ -188,7 +188,7 @@ class Rice1(Codec):
 
     codec_id = "FITS_RICE1"
 
-    def __init__(self, blocksize: int, bytepix: int, tilesize: int):
+    def __init__(self, *, blocksize: int, bytepix: int, tilesize: int):
         self.blocksize = blocksize
         self.bytepix = bytepix
         self.tilesize = tilesize
@@ -245,7 +245,7 @@ class PLIO1(Codec):
 
     codec_id = "FITS_PLIO1"
 
-    def __init__(self, tilesize: int):
+    def __init__(self, *, tilesize: int):
         self.tilesize = tilesize
 
     def decode(self, buf):
@@ -313,7 +313,7 @@ class HCompress1(Codec):
 
     codec_id = "FITS_HCOMPRESS1"
 
-    def __init__(self, scale: int, smooth: bool, bytepix: int, nx: int, ny: int):
+    def __init__(self, *, scale: int, smooth: bool, bytepix: int, nx: int, ny: int):
         self.scale = scale
         self.smooth = smooth
         self.bytepix = bytepix
