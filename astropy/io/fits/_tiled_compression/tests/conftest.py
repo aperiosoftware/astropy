@@ -62,13 +62,26 @@ ALL_FLOAT_DTYPES = ["".join(ele) for ele in _expand([("<", ">"), ("f",), ("4", "
             ALL_FLOAT_DTYPES,
         ],
         # All compression types can also take quantized floating point input
+        # Rather than running all quantization parameters for all algorithms
+        # split up the algorithms to reduce the total number of tests.
         [
-            COMPRESSION_TYPES,
-            (
-                {"qlevel": 5, "qmethod": -1},
-                {"qlevel": 10, "qmethod": 1},
-                {"qlevel": 20, "qmethod": 2},
-            ),
+            ["GZIP_1", "GZIP_2"],
+            ({"qlevel": 5, "qmethod": -1},),
+            ALL_FLOAT_DTYPES,
+        ],
+        [
+            ["RICE_1"],
+            ({"qlevel": 10, "qmethod": 1},),
+            ALL_FLOAT_DTYPES,
+        ],
+        [
+            ["HCOMPRESS_1"],
+            ({"qlevel": 20, "qmethod": 2},),
+            ALL_FLOAT_DTYPES,
+        ],
+        [
+            ["PLIO_1"],
+            ({"qlevel": 20, "qmethod": 1},),
             ALL_FLOAT_DTYPES,
         ],
     ),

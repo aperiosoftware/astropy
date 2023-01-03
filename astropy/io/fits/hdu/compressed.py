@@ -12,12 +12,12 @@ from contextlib import suppress
 import numpy as np
 
 from astropy.io.fits import conf
+from astropy.io.fits._tiled_compression import compress_hdu, decompress_hdu
 from astropy.io.fits.card import Card
 from astropy.io.fits.column import KEYWORD_NAMES as TABLE_KEYWORD_NAMES
 from astropy.io.fits.column import TDEF_RE, ColDefs, Column
 from astropy.io.fits.fitsrec import FITS_rec
 from astropy.io.fits.header import Header
-from astropy.io.fits.tiled_compression import compress_hdu, decompress_hdu
 from astropy.io.fits.util import (
     _get_array_mmap,
     _is_int,
