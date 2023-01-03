@@ -1791,9 +1791,6 @@ class CompImageHDU(BinTableHDU):
             self.data = np.ascontiguousarray(self.data)
 
             # Compress the data.
-            # The current implementation of compress_hdu assumes the empty
-            # compressed data table has already been initialized in
-            # self.compressed_data, and writes directly to it
             # compress_hdu returns the size of the heap for the written
             # compressed image table
             heapsize, self.compressed_data = compress_hdu(self)
