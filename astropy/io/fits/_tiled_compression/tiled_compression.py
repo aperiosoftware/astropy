@@ -82,7 +82,7 @@ def _header_to_settings(header, actual_tile_shape):
         settings["bytepix"] = _get_compression_setting(header, "BYTEPIX", 4)
         settings["tilesize"] = np.product(actual_tile_shape)
     elif header["ZCMPTYPE"] == "HCOMPRESS_1":
-        settings["bytepix"] = 4
+        settings["bytepix"] = 8
         settings["scale"] = int(_get_compression_setting(header, "SCALE", 0))
         settings["smooth"] = _get_compression_setting(header, "SMOOTH", 0)
         # HCOMPRESS requires 2D tiles, so to find the shape of the 2D tile we

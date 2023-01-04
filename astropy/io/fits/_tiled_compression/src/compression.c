@@ -316,8 +316,8 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
   // small of a buffer, this could never happen by more than 32 bytes
   // riiiiiight.
   // TODO: Do a small buffer calculation to tune this number like we did for PLIO
-  long buffer_size = maxelem + 32;
-  compressed_values = (char *)malloc(buffer_size);
+  compressed_values = (char *)calloc(maxelem + 4, sizeof(long long));
+  long buffer_size = (maxelem + 4) * sizeof(long long);
 
   if (bytepix == 4) {
     decompressed_values_int = (int *)str;
@@ -331,6 +331,12 @@ static PyObject *compress_hcompress_1_c(PyObject *self, PyObject *args) {
     // If an error condition inside the cfitsio function, the call inside
     // cfitsio should have called the ffpmsg function which sets the Python
     // exception, so we just return here to raise an error.
+    return (PyObject *)NULL;
+  }
+
+  if (status != 0) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Status returned from cfitsio is not zero for an unknown reason.");
     return (PyObject *)NULL;
   }
 
@@ -383,7 +389,14 @@ static PyObject *decompress_hcompress_1_c(PyObject *self, PyObject *args) {
     return (PyObject *)NULL;
   }
 
-  result = Py_BuildValue("y#", dbytes, nx * ny * bytepix);
+  if (status != 0) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Status returned from cfitsio is not zero for an unknown reason.");
+    return (PyObject *)NULL;
+  }
+
+  // fits_hdecompress[64] always returns 4 byte integers
+  result = Py_BuildValue("y#", dbytes, nx * ny * 4);
   free(dbytes);
   return result;
 }
@@ -500,26 +513,26 @@ static PyObject *unquantize_float_c(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-// TODO: add support, if needed, for nullcheck=1
+  // TODO: add support, if needed, for nullcheck=1
 
-anynull = (int *)malloc(npix * sizeof(int));
-output_data = (float *)malloc(npix * sizeof(float));
+  anynull = (int *)malloc(npix * sizeof(int));
+  output_data = (float *)calloc(npix, sizeof(float));
 
-if (bytepix == 1) {
-    unquantize_i1r4(row, (unsigned char *)input_bytes, npix, bscale, bzero,
-                    dither_method, nullcheck, (unsigned char)tnull, nullval,
-                    NULL, anynull, output_data, &status);
-} else if (bytepix == 2) {
-    unquantize_i2r4(row, (short *)input_bytes, npix, bscale, bzero,
-                    dither_method, nullcheck, (short)tnull, nullval, NULL,
-                    anynull, output_data, &status);
-} else if (bytepix == 4) {
-    unquantize_i4r4(row, (int *)input_bytes, npix, bscale, bzero, dither_method,
-                    nullcheck, (int)tnull, nullval, NULL, anynull, output_data,
-                    &status);
-}
+  if (bytepix == 1) {
+      unquantize_i1r4(row, (unsigned char *)input_bytes, npix, bscale, bzero,
+                      dither_method, nullcheck, (unsigned char)tnull, nullval,
+                      NULL, anynull, output_data, &status);
+  } else if (bytepix == 2) {
+      unquantize_i2r4(row, (short *)input_bytes, npix, bscale, bzero,
+                      dither_method, nullcheck, (short)tnull, nullval, NULL,
+                      anynull, output_data, &status);
+  } else if (bytepix == 4) {
+      unquantize_i4r4(row, (int *)input_bytes, npix, bscale, bzero, dither_method,
+                      nullcheck, (int)tnull, nullval, NULL, anynull, output_data,
+                      &status);
+  }
 
-output_bytes = (char *)output_data;
+  output_bytes = (char *)output_data;
 
   result = Py_BuildValue("y#", output_bytes, npix * sizeof(float));
   free(output_bytes);
@@ -552,26 +565,26 @@ static PyObject *unquantize_double_c(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-// TODO: add support, if needed, for nullcheck=1
+  // TODO: add support, if needed, for nullcheck=1
 
-anynull = (int *)malloc(npix * sizeof(int));
-output_data = (double *)malloc(npix * sizeof(double));
+  anynull = (int *)malloc(npix * sizeof(int));
+  output_data = (double *)malloc(npix * sizeof(double));
 
-if (bytepix == 1) {
-    unquantize_i1r8(row, (unsigned char *)input_bytes, npix, bscale, bzero,
-                    dither_method, nullcheck, (unsigned char)tnull, nullval,
-                    NULL, anynull, output_data, &status);
-} else if (bytepix == 2) {
-    unquantize_i2r8(row, (short *)input_bytes, npix, bscale, bzero,
-                    dither_method, nullcheck, (short)tnull, nullval, NULL,
-                    anynull, output_data, &status);
-} else if (bytepix == 4) {
-    unquantize_i4r8(row, (int *)input_bytes, npix, bscale, bzero, dither_method,
-                    nullcheck, (int)tnull, nullval, NULL, anynull, output_data,
-                    &status);
-}
+  if (bytepix == 1) {
+      unquantize_i1r8(row, (unsigned char *)input_bytes, npix, bscale, bzero,
+                      dither_method, nullcheck, (unsigned char)tnull, nullval,
+                      NULL, anynull, output_data, &status);
+  } else if (bytepix == 2) {
+      unquantize_i2r8(row, (short *)input_bytes, npix, bscale, bzero,
+                      dither_method, nullcheck, (short)tnull, nullval, NULL,
+                      anynull, output_data, &status);
+  } else if (bytepix == 4) {
+      unquantize_i4r8(row, (int *)input_bytes, npix, bscale, bzero, dither_method,
+                      nullcheck, (int)tnull, nullval, NULL, anynull, output_data,
+                      &status);
+  }
 
-output_bytes = (char *)output_data;
+  output_bytes = (char *)output_data;
 
   result = Py_BuildValue("y#", output_bytes, npix * sizeof(double));
   free(output_bytes);

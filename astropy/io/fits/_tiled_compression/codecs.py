@@ -339,7 +339,8 @@ class HCompress1(Codec):
         dbytes = decompress_hcompress_1_c(
             cbytes, self.nx, self.ny, self.scale, self.smooth, self.bytepix
         )
-        return np.frombuffer(dbytes, dtype=f"i{self.bytepix}")
+        # fits_hdecompress* always returns 4 byte integers irrespective of bytepix
+        return np.frombuffer(dbytes, dtype="i4")
 
     def encode(self, buf):
         """
