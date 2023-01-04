@@ -5,6 +5,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_equal
 
 from astropy.io import fits
+from astropy.io.fits._tiled_compression.codecs import PLIO1
 
 from .conftest import fitsio_param_to_astropy_param
 
@@ -125,3 +126,11 @@ def test_roundtrip_high_D(
     with fits.open(filename) as hdul:
         a = hdul[1].data
         np.testing.assert_allclose(original_data, hdul[1].data, atol=atol)
+
+
+def test_plio_1_out_of_range():
+    pc = PLIO1(tilesize=10)
+    data = np.arange(-10, 0).astype(np.int32)
+
+    with pytest.raises(ValueError):
+        pc.encode(data)

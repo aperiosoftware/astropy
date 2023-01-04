@@ -112,6 +112,18 @@ static PyObject *compress_plio_1_c(PyObject *self, PyObject *args) {
     return NULL;
   }
 
+  decompressed_values = (int *)str;
+
+  for (int ii = 0; ii < tilesize; ii++)  {
+    if (decompressed_values[ii] < 0 || decompressed_values[ii] > 16777215)
+    {
+      /* plio algorithm only supports positive 24 bit ints */
+      PyErr_SetString(PyExc_ValueError,
+                      "data out of range for PLIO compression (0 - 2**24)");
+      return (PyObject *)NULL;
+    }
+  }
+
   // For PLIO imcomp_calc_max_elem in cfitsio does this to calculate max memory:
   maxelem = tilesize;
   // However, when compressing small numbers of random integers you can end up
@@ -157,7 +169,7 @@ static PyObject *decompress_plio_1_c(PyObject *self, PyObject *args) {
 
   compressed_values = (short *)str;
 
-  decompressed_values = (int *)malloc(sizeof(int) * tilesize);
+  decompressed_values = (int *)calloc(tilesize, sizeof(int));
 
   pl_l2pi(compressed_values, 1, decompressed_values, tilesize);
 
@@ -170,7 +182,7 @@ static PyObject *decompress_plio_1_c(PyObject *self, PyObject *args) {
 
   buf = (char *)decompressed_values;
 
-  result = Py_BuildValue("y#", buf, tilesize * 4);
+  result = Py_BuildValue("y#", buf, tilesize * sizeof(int));
   free(buf);
   return result;
 }

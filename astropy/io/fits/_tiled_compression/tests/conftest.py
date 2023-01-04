@@ -76,14 +76,14 @@ ALL_FLOAT_DTYPES = ["".join(ele) for ele in _expand([("<", ">"), ("f",), ("4", "
         ],
         [
             ["HCOMPRESS_1"],
-            ({"qlevel": 20, "qmethod": 2},),
+            (
+                {"qlevel": 20, "qmethod": 2},
+                {"qlevel": 10, "qmethod": 1},
+            ),
             ALL_FLOAT_DTYPES,
         ],
-        [
-            ["PLIO_1"],
-            ({"qlevel": 20, "qmethod": 1},),
-            ALL_FLOAT_DTYPES,
-        ],
+        # Note no PLIO here as that's intended for masks, i.e. data which can't
+        # be generated with quantization.
     ),
 )
 def comp_param_dtype(request):
