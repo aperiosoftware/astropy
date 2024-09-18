@@ -155,7 +155,9 @@ def _fit_models_to_chunk(
         else:
             weights_kwargs = dict(weights=weights[index])
 
-        # Do the actual fitting
+        # Do the actual fitting - note that we can use inplace=True here to
+        # speed things up by avoiding an unecessary copy, since we don't need
+        # to retain the original parameter values.
         try:
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
@@ -163,6 +165,7 @@ def _fit_models_to_chunk(
                     model_i,
                     *world_values,
                     data[index],
+                    inplace=True,
                     **weights_kwargs,
                     **fitter_kwargs,
                 )
@@ -255,6 +258,7 @@ class ParameterContainer:
         return values[item]
 
 
+@profile
 def parallel_fit_dask(
     *,
     model,
