@@ -2200,7 +2200,6 @@ def _validate_constraints(supported_constraints, model):
         raise UnsupportedConstraintError(message.format("inequality"))
 
 
-@profile
 def _validate_model(model, supported_constraints, copy=True):
     """
     Check that model and fitter are compatible and return a copy of the model.

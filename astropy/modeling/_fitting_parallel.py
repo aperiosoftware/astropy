@@ -258,7 +258,6 @@ class ParameterContainer:
         return values[item]
 
 
-@profile
 def parallel_fit_dask(
     *,
     model,
